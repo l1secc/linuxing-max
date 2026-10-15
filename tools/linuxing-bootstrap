@@ -1,0 +1,173 @@
+#!/usr/bin/env bash
+# ============================================================================
+#  Linuxing Max · scheme switcher + soft look bootstrap
+#
+#  Puts the scheme switcher (`linuxing-scheme`) on PATH, and installs the
+#  Linuxing look: the Hyprland soft glass (rounded corners, blur, shadows,
+#  translucency, the full animation set), foot's translucent terminal, the eza
+#  file-kind colours and the native GTK colour overrides.
+#
+#  Idempotent: safe to run from install.sh, from the theme-set hook after
+#  `omarchy theme update`, or by hand. Theme repos are not allowed to install
+#  code by themselves, so this is the one-time step that does it.
+#
+#  Usage:
+#    linuxing-bootstrap [--quiet] [--uninstall]
+# ============================================================================
+set -euo pipefail
+
+THEME_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+BIN_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
+EZA_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/eza"
+EZA_THEME="$EZA_DIR/theme.yml"
+EZA_BACKUP="$EZA_DIR/theme.yml.pre-linuxing"
+HYPR_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/hypr"
+HYPR_LOOKNFEEL="$HYPR_DIR/looknfeel.lua"
+HYPR_BACKUP="$HYPR_DIR/looknfeel.lua.pre-linuxing"
+FOOT_INI="${XDG_CONFIG_HOME:-$HOME/.config}/foot/foot.ini"
+FOOT_MARK_BEGIN="# >>> linuxing-max theme (managed) >>>"
+FOOT_MARK_END="# <<< linuxing-max theme (managed) <<<"
+# The staged theme Omarchy actually reads; GTK colour overrides symlink into it
+# so they follow `omarchy theme set` and `linuxing-scheme` without re-install.
+STAGED_THEME_DIR="$HOME/.local/state/omarchy/current/theme"
+GTK_DIRS=(gtk-3.0 gtk-4.0)
+
+QUIET=0
+UNINSTALL=0
+for arg in "$@"; do
+  case "$arg" in
+    --quiet | -q) QUIET=1 ;;
+    --uninstall) UNINSTALL=1 ;;
+    -h | --help) sed -n '3,16p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "Unknown option: $arg" >&2; exit 2 ;;
+  esac
+done
+
+say() { (( QUIET )) || printf '%s\n' "$*"; }
+
+foot_without_block() {
+  [[ -f $FOOT_INI ]] || return 0
+  awk -v b="$FOOT_MARK_BEGIN" -v e="$FOOT_MARK_END" '
+    $0 == b { skip = 1; next }
+    $0 == e { skip = 0; next }
+    !skip { print }
+  ' "$FOOT_INI"
+}
+
+if (( UNINSTALL )); then
+  rm -f "$BIN_DIR/linuxing-scheme"
+  # eza file-kind colours: only remove our own file, put back a backed-up one.
+  if [[ -f $EZA_THEME ]] && cmp -s "$EZA_THEME" "$THEME_DIR/eza/theme.yml"; then
+    rm -f "$EZA_THEME"
+    if [[ -f $EZA_BACKUP ]]; then
+      mv "$EZA_BACKUP" "$EZA_THEME"
+      say "restored your previous $EZA_THEME"
+    fi
+  fi
+  # Soft look: drop our look'n'feel, restore a backed-up one.
+  if [[ -f $HYPR_LOOKNFEEL ]] && cmp -s "$HYPR_LOOKNFEEL" "$THEME_DIR/hypr/looknfeel.lua"; then
+    rm -f "$HYPR_LOOKNFEEL"
+    if [[ -f $HYPR_BACKUP ]]; then
+      mv "$HYPR_BACKUP" "$HYPR_LOOKNFEEL"
+      say "restored your previous $HYPR_LOOKNFEEL"
+    fi
+  fi
+  # Terminal translucency block.
+  if [[ -f $FOOT_INI ]] && grep -qF "$FOOT_MARK_BEGIN" "$FOOT_INI"; then
+    tmp=$(mktemp)
+    foot_without_block >"$tmp" && install -m644 "$tmp" "$FOOT_INI"
+    rm -f "$tmp"
+    say "removed the managed block from $FOOT_INI"
+  fi
+  # Native GTK colour overrides: drop our symlink, restore a backed-up file.
+  for tgtdir in "${GTK_DIRS[@]}"; do
+    css_file="${XDG_CONFIG_HOME:-$HOME/.config}/$tgtdir/gtk.css"
+    backup="$css_file.pre-linuxing"
+    if [[ -L $css_file ]]; then
+      rm -f "$css_file"
+      if [[ -f $backup ]]; then
+        mv "$backup" "$css_file"
+        say "restored your previous $css_file"
+      fi
+    fi
+  done
+  hyprctl reload >/dev/null 2>&1 || true
+  omarchy-restart-terminal >/dev/null 2>&1 || true
+  say "Removed linuxing-scheme, the eza theme, the look'n'feel, the terminal translucency and the GTK colour overrides"
+  exit 0
+fi
+
+# 1. Scheme switcher on PATH.
+mkdir -p "$BIN_DIR"
+[[ -f $THEME_DIR/tools/linuxing-scheme ]] || { echo "! missing $THEME_DIR/tools/linuxing-scheme" >&2; exit 1; }
+install -m755 "$THEME_DIR/tools/linuxing-scheme" "$BIN_DIR/linuxing-scheme"
+say "✓ $BIN_DIR/linuxing-scheme"
+
+count=$(find "$THEME_DIR/palettes" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
+say "Linuxing Max: $count whole-system colour schemes under one theme."
+
+# 2. eza file-kind colours: folders phosphor green, text stays white.
+if [[ -f $THEME_DIR/eza/theme.yml ]] && command -v eza >/dev/null 2>&1; then
+  mkdir -p "$EZA_DIR"
+  if [[ -f $EZA_THEME ]] && ! cmp -s "$EZA_THEME" "$THEME_DIR/eza/theme.yml" && [[ ! -f $EZA_BACKUP ]]; then
+    cp -p "$EZA_THEME" "$EZA_BACKUP"
+    say "✓ kept your previous eza theme as $EZA_BACKUP"
+  fi
+  if ! cmp -s "$EZA_THEME" "$THEME_DIR/eza/theme.yml"; then
+    install -m644 "$THEME_DIR/eza/theme.yml" "$EZA_THEME"
+    say "✓ $EZA_THEME (folders phosphor green, text white)"
+  fi
+fi
+
+# 3. Soft look: rounded corners, soft shadows and blur for Hyprland — the
+#    Omarchy shell mirrors decoration:rounding into its own corner radius, so
+#    this softens the bar, menu, launcher and notifications too.
+if [[ -f $THEME_DIR/hypr/looknfeel.lua ]]; then
+  mkdir -p "$HYPR_DIR"
+  if [[ -f $HYPR_LOOKNFEEL ]] && ! cmp -s "$HYPR_LOOKNFEEL" "$THEME_DIR/hypr/looknfeel.lua" && [[ ! -f $HYPR_BACKUP ]]; then
+    cp -p "$HYPR_LOOKNFEEL" "$HYPR_BACKUP"
+    say "✓ kept your previous look'n'feel as $HYPR_BACKUP"
+  fi
+  if ! cmp -s "$HYPR_LOOKNFEEL" "$THEME_DIR/hypr/looknfeel.lua"; then
+    install -m644 "$THEME_DIR/hypr/looknfeel.lua" "$HYPR_LOOKNFEEL"
+    hyprctl reload >/dev/null 2>&1 || true
+    say "✓ $HYPR_LOOKNFEEL (rounded corners, blur, soft shadows, animations)"
+  fi
+fi
+
+# 4. Translucent terminal: foot's own background alpha (text stays crisp),
+#    appended to the user's foot.ini between managed markers.
+if [[ -f $THEME_DIR/foot/linuxing-foot.ini && -f $FOOT_INI ]]; then
+  tmp=$(mktemp)
+  foot_without_block >"$tmp"
+  printf '%s\n' "$FOOT_MARK_BEGIN" >>"$tmp"
+  cat "$THEME_DIR/foot/linuxing-foot.ini" >>"$tmp"
+  printf '%s\n' "$FOOT_MARK_END" >>"$tmp"
+  if ! cmp -s "$tmp" "$FOOT_INI"; then
+    install -m644 "$tmp" "$FOOT_INI"
+    omarchy-restart-terminal >/dev/null 2>&1 || true
+    say "✓ translucent terminal ($FOOT_INI)"
+  fi
+  rm -f "$tmp"
+fi
+
+# 5. Native GTK apps: point ~/.config/gtk-{3,4}.0/gtk.css at the staged theme's
+#    Linuxing palette so GTK windows match the terminal, the bar and the shell.
+#    Symlinked so the colours follow `omarchy theme set` and `linuxing-scheme`
+#    without this script running again; the user's own file is backed up first.
+for tgtdir in "${GTK_DIRS[@]}"; do
+  css_dir="${XDG_CONFIG_HOME:-$HOME/.config}/$tgtdir"
+  css_file="$css_dir/gtk.css"
+  backup="$css_file.pre-linuxing"
+  target="$STAGED_THEME_DIR/$tgtdir/gtk.css"
+  [[ -f $target ]] || continue
+  mkdir -p "$css_dir"
+  if [[ -f $css_file && ! -L $css_file ]] && [[ ! -f $backup ]]; then
+    cp -p "$css_file" "$backup"
+    say "✓ kept your previous $css_file as $backup"
+  fi
+  if [[ ! -L $css_file || $(readlink "$css_file") != "$target" ]]; then
+    ln -sfn "$target" "$css_file"
+    say "✓ $css_file → Linuxing palette"
+  fi
+done

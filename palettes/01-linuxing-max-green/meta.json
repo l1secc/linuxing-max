@@ -1,0 +1,12 @@
+{
+  "num": "01",
+  "slug": "linuxing-max-green",
+  "scheme": "green",
+  "theme": "Linuxing Max — Kernel Green",
+  "title": "Kernel Green",
+  "blurb": "the Linux console signature",
+  "accent": "#3ddc84",
+  "primary": "#22d3ee",
+  "secondary": "#a3e635",
+  "generator": "tools/linuxing_generate.py"
+}

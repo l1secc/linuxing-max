@@ -1,0 +1,12 @@
+{
+  "num": "02",
+  "slug": "linuxing-max-blue",
+  "scheme": "blue",
+  "theme": "Linuxing Max — Security Blue",
+  "title": "Security Blue",
+  "blurb": "the SOC / neon-ops blue",
+  "accent": "#4dabf7",
+  "primary": "#22d3ee",
+  "secondary": "#a78bfa",
+  "generator": "tools/linuxing_generate.py"
+}

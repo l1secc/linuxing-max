@@ -1,0 +1,12 @@
+{
+  "num": "04",
+  "slug": "linuxing-max-red",
+  "scheme": "red",
+  "theme": "Linuxing Max — Root Red",
+  "title": "Root Red",
+  "blurb": "the exploit / root prompt",
+  "accent": "#ff6b6b",
+  "primary": "#ffa94d",
+  "secondary": "#ff8787",
+  "generator": "tools/linuxing_generate.py"
+}

@@ -1,0 +1,207 @@
+#!/usr/bin/env bash
+# ============================================================================
+#  Linuxing Max — colour-scheme switcher
+#
+#  One theme, four whole-system schemes (green / blue / white / red). Every
+#  scheme owns a palette bundle in palettes/<NN>-linuxing-max-<scheme>/.
+#  Switching a scheme means:
+#
+#    1. copy that bundle's colors.toml / shell.toml / waybar.css /
+#       hyprland.conf / gtk.css (and gtk-3.0 / gtk-4.0) onto the theme root,
+#    2. re-apply the theme with OMARCHY_THEME_SKIP_BACKGROUND=1, so Omarchy
+#       regenerates every terminal/editor/browser config from the new
+#       colors.toml, pushes the new shell.toml at the running shell (bar, menu,
+#       launcher, lock, OSD) and retints running Foot windows via OSC — all
+#       without touching the wallpaper.
+#
+#  `--light` skips the heavy app-restart chain and hot-reloads the running
+#  desktop directly (shell IPC + Foot OSC + Hyprland reload), which is enough
+#  for the surfaces the scheme actually recolours.
+#
+#  Usage:
+#    linuxing-scheme                # cycle to the next scheme
+#    linuxing-scheme prev           # previous scheme
+#    linuxing-scheme blue           # jump to a scheme by name
+#    linuxing-scheme list           # list the available schemes
+#    linuxing-scheme --light red    # hot-reload only
+# ============================================================================
+set -euo pipefail
+
+THEME="linuxing-max"
+THEME_DIR="$HOME/.config/omarchy/themes/$THEME"
+PALETTES_DIR="$THEME_DIR/palettes"
+CURRENT_DIR="$HOME/.local/state/omarchy/current"
+STAGED_THEME_DIR="$CURRENT_DIR/theme"
+
+BUNDLE_FILES=(colors.toml shell.toml waybar.css hyprland.conf gtk.css)
+GTK_DIRS=(gtk-3.0 gtk-4.0)
+
+QUIET=0
+LIGHT=0
+FORCE=0
+ARG=""
+for arg in "$@"; do
+  case "$arg" in
+    --quiet | -q) QUIET=1 ;;
+    --light) LIGHT=1 ;;
+    --force | -f) FORCE=1 ;;
+    -h | --help)
+      sed -n '3,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *)
+      ARG="$arg"
+      ;;
+  esac
+done
+
+say() { (( QUIET )) || printf '%s\n' "$*"; }
+warn() { printf '%s\n' "$*" >&2; }
+
+json_field() { # json_field <file> <key>
+  python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get(sys.argv[2],""))' "$1" "$2" 2>/dev/null || true
+}
+
+mapfile -t BUNDLES < <(find "$PALETTES_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
+COUNT=${#BUNDLES[@]}
+if (( COUNT == 0 )); then
+  warn "No scheme bundles found in $PALETTES_DIR"
+  exit 1
+fi
+
+bundle_name() { json_field "$1/meta.json" scheme; }
+bundle_title() { json_field "$1/meta.json" title; }
+bundle_accent() { json_field "$1/meta.json" accent; }
+
+# --- which scheme is live right now? ----------------------------------------
+current_scheme() {
+  local colors="$STAGED_THEME_DIR/colors.toml" accent i
+  [[ -f $colors ]] || colors="$THEME_DIR/colors.toml"
+  [[ -f $colors ]] || return 0
+  accent=$(sed -nE 's/^accent[[:space:]]*=[[:space:]]*"?#?([0-9a-fA-F]{6})"?[[:space:]]*$/\1/p' "$colors" | head -n1)
+  [[ -n $accent ]] || return 0
+  for i in "${!BUNDLES[@]}"; do
+    [[ "$(bundle_accent "${BUNDLES[$i]}")" == "#$accent" || "$(bundle_accent "${BUNDLES[$i]}")" == "$accent" ]] && { printf '%s' "$i"; return; }
+  done
+}
+
+if [[ $ARG == list ]]; then
+  idx=$(current_scheme)
+  for i in "${!BUNDLES[@]}"; do
+    marker=" "
+    (( i == idx )) && marker="*"
+    printf '%s %s — %s\n' "$marker" "$(bundle_name "${BUNDLES[$i]}")" "$(bundle_title "${BUNDLES[$i]}")"
+  done
+  exit 0
+fi
+
+INDEX=$(current_scheme)
+TARGET=-1
+
+case "$ARG" in
+  "" | next) TARGET=$(( (INDEX + 1 + COUNT) % COUNT )) ;;
+  prev | previous) TARGET=$(( (INDEX - 1 + 2 * COUNT) % COUNT )) ;;
+  *)
+    for i in "${!BUNDLES[@]}"; do
+      [[ "$(bundle_name "${BUNDLES[$i]}")" == "$ARG" ]] && { TARGET=$i; break; }
+    done
+    if (( TARGET < 0 )); then
+      for i in "${!BUNDLES[@]}"; do
+        [[ "$(bundle_title "${BUNDLES[$i]}")" == *"$ARG"* ]] && { TARGET=$i; break; }
+      done
+    fi
+    ;;
+esac
+
+if (( TARGET < 0 || TARGET >= COUNT )); then
+  warn "No Linuxing Max scheme matches: $ARG"
+  warn "have: $(for b in "${BUNDLES[@]}"; do printf '%s ' "$(bundle_name "$b")"; done)"
+  exit 1
+fi
+
+BUNDLE="${BUNDLES[$TARGET]}"
+NAME="$(bundle_name "$BUNDLE")"
+TITLE="$(bundle_title "$BUNDLE")"
+
+# --- is the scheme already live? --------------------------------------------
+scheme_is_live() {
+  [[ -f $STAGED_THEME_DIR/colors.toml ]] || return 1
+  local f
+  for f in "${BUNDLE_FILES[@]}"; do
+    [[ -f "$BUNDLE/$f" ]] || continue
+    cmp -s "$BUNDLE/$f" "$STAGED_THEME_DIR/$f" || return 1
+  done
+  for d in "${GTK_DIRS[@]}"; do
+    [[ -f "$BUNDLE/$d/gtk.css" ]] || continue
+    cmp -s "$BUNDLE/$d/gtk.css" "$STAGED_THEME_DIR/$d/gtk.css" || return 1
+  done
+  return 0
+}
+
+# --- 1. install the scheme's palette at the theme root ------------------------
+copy_bundle() { # copy_bundle <dest-dir>
+  local dest="$1" f d
+  mkdir -p "$dest"
+  for f in "${BUNDLE_FILES[@]}"; do
+    [[ -f "$BUNDLE/$f" ]] || continue
+    cmp -s "$BUNDLE/$f" "$dest/$f" || cp -f "$BUNDLE/$f" "$dest/$f"
+  done
+  for d in "${GTK_DIRS[@]}"; do
+    [[ -f "$BUNDLE/$d/gtk.css" ]] || continue
+    mkdir -p "$dest/$d"
+    cmp -s "$BUNDLE/$d/gtk.css" "$dest/$d/gtk.css" || cp -f "$BUNDLE/$d/gtk.css" "$dest/$d/gtk.css"
+  done
+}
+
+# --- 2. hot reload path (--light) ---------------------------------------------
+light_retint() {
+  local live="$STAGED_THEME_DIR" colors_payload shell_payload
+  [[ -d $live && -f $live/colors.toml ]] || return 1
+  copy_bundle "$live"
+
+  # Rebuild template-derived configs (hyprland.lua, foot.ini, btop.theme, …)
+  # from the palette now staged, then reload Hyprland so the new border
+  # gradient goes live. Reuses the omarchy-theme-set lock so the two paths can
+  # never share the next-theme staging directory.
+  if command -v omarchy-theme-set-templates >/dev/null 2>&1; then
+    : "${OMARCHY_PATH:=/usr/share/omarchy}"
+    export OMARCHY_PATH
+    local lock="${XDG_RUNTIME_DIR:-/tmp}/omarchy-theme-set.lock"
+    exec 9>"$lock" 2>/dev/null && flock 9 2>/dev/null || true
+    omarchy-theme-set-templates >/dev/null 2>&1 || true
+    flock -u 9 2>/dev/null || true
+  fi
+  command -v hyprctl >/dev/null 2>&1 && hyprctl reload >/dev/null 2>&1 || true
+
+  # Hot-reload the running shell (bar / menu / launcher / lock / OSD).
+  if command -v omarchy-shell >/dev/null 2>&1; then
+    colors_payload=$(base64 -w0 "$live/colors.toml" 2>/dev/null) || return 1
+    shell_payload=$(base64 -w0 "$live/shell.toml" 2>/dev/null) || return 1
+    timeout 3 omarchy-shell -q shell applyTheme "$colors_payload" "$shell_payload" || return 1
+  fi
+
+  # Retint every already-running Foot window through OSC.
+  command -v omarchy-theme-set-foot >/dev/null 2>&1 && omarchy-theme-set-foot >/dev/null 2>&1 || true
+  return 0
+}
+
+if (( FORCE )) || ! scheme_is_live; then
+  copy_bundle "$THEME_DIR"
+  if (( LIGHT )) && light_retint; then
+    say "Linuxing Max: $TITLE retinted (light)"
+  else
+    (( LIGHT )) && say "Linuxing Max: light retint unavailable, applying full theme"
+    OMARCHY_THEME_SKIP_BACKGROUND=1 omarchy-theme-set "$THEME"
+  fi
+else
+  say "Linuxing Max: $TITLE already live"
+fi
+
+# --- 3. notify ----------------------------------------------------------------
+if (( ! QUIET )) && command -v omarchy-notification-send >/dev/null 2>&1; then
+  omarchy-notification-send "Linuxing Max · $TITLE" \
+    "Tüm sistem yeniden boyandı · $((TARGET + 1))/$COUNT" \
+    -t 2500 >/dev/null 2>&1 || true
+fi
+
+say "Linuxing Max → $TITLE ($((TARGET + 1))/$COUNT)"
