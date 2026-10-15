@@ -6,8 +6,8 @@
   "title": "Sunset Amber",
   "blurb": "golden hour over the mainframe",
   "wallpaper": "Linuxing-02-sunset.jpg",
-  "accent": "#ea9e42",
-  "primary": "#c84153",
-  "secondary": "#c247aa",
+  "accent": "#f6743f",
+  "primary": "#c24771",
+  "secondary": "#9947c2",
   "generator": "tools/linuxing_generate.py"
 }

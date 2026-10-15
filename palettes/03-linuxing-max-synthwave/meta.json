@@ -6,8 +6,8 @@
   "title": "Neon Synthwave",
   "blurb": "hot-pink wires under a striped sun",
   "wallpaper": "Linuxing-03-synthwave.jpg",
-  "accent": "#dc2d94",
-  "primary": "#8a23e7",
-  "secondary": "#d65cd3",
+  "accent": "#e831e4",
+  "primary": "#6343c7",
+  "secondary": "#965cd6",
   "generator": "tools/linuxing_generate.py"
 }

@@ -6,8 +6,8 @@
   "title": "Crimson Root",
   "blurb": "red-hot root access",
   "wallpaper": "Linuxing-05-crimson.jpg",
-  "accent": "#ed3541",
-  "primary": "#d67c5c",
-  "secondary": "#d65c94",
+  "accent": "#f73344",
+  "primary": "#d6885c",
+  "secondary": "#d65ca9",
   "generator": "tools/linuxing_generate.py"
 }

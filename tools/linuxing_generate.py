@@ -187,8 +187,9 @@ def _vivid(c: dict, min_s: float) -> str:
 
 
 def extract_palette(image_path: str) -> tuple[str, str, str]:
+    import math
     out = subprocess.run(
-        ["magick", image_path, "-resize", "140x140", "-colors", "8", "-unique-colors", "txt:-"],
+        ["magick", image_path, "-resize", "200x200", "-colors", "24", "-unique-colors", "txt:-"],
         capture_output=True, text=True, check=True,
     ).stdout
 
@@ -205,36 +206,44 @@ def extract_palette(image_path: str) -> tuple[str, str, str]:
     if not cands:
         raise SystemExit(f"could not read any colours from {image_path}")
 
-    def pick(used: list[float], min_dist: float):
-        best, best_score = None, -1.0
-        for c in cands:
-            if any(hue_dist(c["h"], u) < min_dist for u in used):
-                continue
-            score = c["s"] * (1.0 - abs(c["l"] - 0.6))
-            if score > best_score:
-                best_score, best = score, c
-        return best
+    def weight(c: dict) -> float:
+        return c["s"] * (0.35 + 0.65 * c["l"])
 
-    picks = []
-    used: list[float] = []
-    for i, min_dist in enumerate((0.0, 0.11, 0.11)):
-        c = pick(used, min_dist)
-        if c is None:
-            # not enough distinct hues in the photo (a single-hue gradient) —
-            # keep it elegant with an analogous shimmer instead of clashing.
-            base_h = picks[0]["h"] if picks else cands[0]["h"]
-            shift = (0.055, -0.065)[min(i - 1, 1)]
-            c = {"hex": "", "h": (base_h + shift) % 1.0, "l": 0.60, "s": 0.60}
-        used.append(c["h"])
-        picks.append(c)
+    # Dominant hue as a circular mean weighted by chromatic strength, so a
+    # tinted (dark) terminal background and its vivid prompt both contribute.
+    wx = sum(weight(c) * math.cos(2 * math.pi * c["h"]) for c in cands)
+    wy = sum(weight(c) * math.sin(2 * math.pi * c["h"]) for c in cands)
+    dom_h = (math.atan2(wy, wx) / (2 * math.pi)) % 1.0
 
-    accent = _vivid(picks[0], 0.62)
-    primary = _vivid(picks[1], 0.55)
-    secondary = _vivid(picks[2], 0.50)
+    near = [c for c in cands if hue_dist(c["h"], dom_h) < 0.22]
+    if near:
+        best = max(near, key=weight)
+        sat = clamp(max(best["s"], 0.62), 0.62, 0.92)
+        lig = clamp(max(best["l"], 0.55), 0.52, 0.70)
+    else:
+        sat, lig = 0.72, 0.60
+    accent = hls_to_hex(dom_h, lig, sat)
+
+    # primary/secondary: strongest hues clearly away from the accent; fall back
+    # to analogous shimmers of the accent for a tasteful gradient.
+    others = []
+    for c in sorted(cands, key=weight, reverse=True):
+        if hue_dist(c["h"], dom_h) <= 0.10:
+            continue
+        if any(hue_dist(c["h"], o["h"]) < 0.10 for o in others):
+            continue
+        others.append({"h": c["h"], "l": clamp(max(c["l"], 0.52), 0.52, 0.70), "s": clamp(max(c["s"], 0.50), 0.50, 0.85)})
+        if len(others) == 2:
+            break
+    while len(others) < 2:
+        shift = (0.075, -0.09)[len(others)]
+        others.append({"h": (dom_h + shift) % 1.0, "l": 0.60, "s": 0.60})
+
+    primary = hls_to_hex(others[0]["h"], others[0]["l"], others[0]["s"])
+    secondary = hls_to_hex(others[1]["h"], others[1]["l"], others[1]["s"])
     return accent, primary, secondary
 
 
-# --------------------------------------------------------------------------- #
 #  token computation — the whole scheme is derived from its accent hue
 # --------------------------------------------------------------------------- #
 def compute_tokens(scheme: dict) -> dict[str, str]:
