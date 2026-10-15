@@ -18,11 +18,11 @@ glides through the terminal" feel.
 
 ```bash
 # one-command install (clones + bootstraps)
-bash <(curl -fsSL https://raw.githubusercontent.com/l1secc/linuxing-max/main/bootstrap.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/l1secc/linuxing-max/main/tools/bootstrap.sh)
 
 # …or, step by step:
 omarchy theme install https://github.com/l1secc/linuxing-max
-~/.config/omarchy/themes/linuxing-max/install.sh
+~/.config/omarchy/themes/linuxing-max/tools/install.sh
 
 # switch the wallpaper (the palette stays green)
 linuxing-scheme            # next wallpaper
@@ -60,7 +60,7 @@ code on your machine by itself.
 
 ### What the bootstrap adds (the one-time step you run yourself)
 
-`install.sh` → `tools/linuxing-bootstrap` installs, idempotently:
+`tools/install.sh` → `tools/linuxing-bootstrap` installs, idempotently:
 
 - **`~/.config/hypr/looknfeel.lua`** — rounded squircle corners (`rounding 16`),
   glassmorphism blur, soft shadows, reduced window opacity (`0.92 / 0.85`) and
@@ -72,7 +72,7 @@ code on your machine by itself.
 - **`linuxing-scheme` on your PATH** (the wallpaper switcher), plus a `theme-set`
   hook so `omarchy theme update` / re-applying the theme keeps everything current.
 
-Uninstall with `~/.config/omarchy/themes/linuxing-max/install.sh --uninstall`.
+Uninstall with `~/.config/omarchy/themes/linuxing-max/tools/install.sh --uninstall`.
 
 ### The renderer
 
@@ -107,9 +107,9 @@ linuxing-max/
 │   ├── linuxing_generate.py      # green palette renderer
 │   ├── linuxing-scheme           # wallpaper switcher (on PATH)
 │   ├── linuxing-bootstrap        # soft look installer
-│   └── generate-wallpapers.sh    # wallpaper generator
-├── install.sh             # bootstrap + hook
-├── bootstrap.sh           # curl one-liner
+│   ├── generate-wallpapers.sh    # wallpaper generator
+│   ├── install.sh                # bootstrap + hook
+│   └── bootstrap.sh              # curl one-liner
 ├── preview.webp / .jpg    # theme-picker thumbnail
 └── distribution/          # for the omarchy-site community listing
 ```

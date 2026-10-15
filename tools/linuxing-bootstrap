@@ -7,7 +7,7 @@
 #  translucency, the full animation set), foot's translucent terminal, the eza
 #  file-kind colours and the native GTK colour overrides.
 #
-#  Idempotent: safe to run from install.sh, from the theme-set hook after
+#  Idempotent: safe to run from tools/install.sh, from the theme-set hook after
 #  `omarchy theme update`, or by hand. Theme repos are not allowed to install
 #  code by themselves, so this is the one-time step that does it.
 #

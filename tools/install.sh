@@ -18,7 +18,9 @@
 # ============================================================================
 set -euo pipefail
 
-THEME_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# This script lives in tools/, so the theme root is one level up from here —
+# the same directory Omarchy cloned the repo into.
+THEME_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 THEME_NAME="$(basename -- "$THEME_DIR")"
 HOOK_DIR="$HOME/.config/omarchy/hooks/theme-set.d"
 HOOK_FILE="$HOOK_DIR/$THEME_NAME.hook"
@@ -28,7 +30,7 @@ for arg in "$@"; do
   case "$arg" in
     --no-hook) WITH_HOOK=0 ;;
     --uninstall) ;;
-    -h | --help) sed -n '3,16p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h | --help) sed -n '3,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option: $arg" >&2; exit 2 ;;
   esac
 done
