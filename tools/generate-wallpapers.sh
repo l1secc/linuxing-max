@@ -30,11 +30,11 @@ magick -size ${W}x${H} radial-gradient:'#101613'-'#050706' \
   -fill '#2a3d31' -draw "circle 486,217 486,211" \
   -fill '#3d2a2e' -draw "circle 526,217 526,211" \
   -gravity NorthWest \
-  -font "$MONO_B" -pointsize 30 -fill '#3ddc84' -annotate +460+300 "linuxing@max:~$" \
+  -font "$MONO_B" -pointsize 30 -fill '#3ddc84' -annotate +460+300 "l1sec@max:~$" \
   -font "$MONO" -pointsize 26 -fill '#9fb3a6' -annotate +460+356 "sudo systemctl start the-future" \
   -font "$MONO" -pointsize 26 -fill '#5f7366' -annotate +460+412 "[ ok ] kernel · hyprland · omarchy" \
   -font "$MONO" -pointsize 26 -fill '#5f7366' -annotate +460+468 "[ ok ] shell · bar · launcher · lock" \
-  -font "$MONO_B" -pointsize 30 -fill '#3ddc84' -annotate +460+540 "linuxing@max:~$" \
+  -font "$MONO_B" -pointsize 30 -fill '#3ddc84' -annotate +460+540 "l1sec@max:~$" \
   -font "$MONO" -pointsize 26 -fill '#c8d6cc' -annotate +790+544 "_" \
   -attenuate 0.3 +noise Gaussian \
   "$OUT/Linuxing-01-terminal.jpg"
@@ -68,7 +68,7 @@ scene() {
 
 # ------------------------------------------------------------------ 02 recon
 scene "$OUT/Linuxing-02-recon.jpg" <<'LINES'
-#3ddc84|300|26|b|linuxing@max:~$ nmap -sV 10.10.10.0/24
+#3ddc84|300|26|b|l1sec@max:~$ nmap -sV 10.10.10.0/24
 #5f7366|348|24||Starting Nmap 7.95 ( https://nmap.org )
 #9fb3a6|392|24||Nmap scan report for gateway (10.10.10.1)
 #7ce8a8|436|24||22/tcp    open     ssh        OpenSSH 9.8p1
@@ -77,28 +77,28 @@ scene "$OUT/Linuxing-02-recon.jpg" <<'LINES'
 #ff7a93|568|24||3306/tcp  closed   mysql
 #f0d9a0|612|24||8080/tcp  filtered http-proxy
 #5f7366|660|24||Nmap done: 256 IPs (12 hosts up) scanned in 8.4s
-#3ddc84|740|26|b|linuxing@max:~$ _
+#3ddc84|740|26|b|l1sec@max:~$ _
 LINES
 
 # -------------------------------------------------------------- 03 developer
 scene "$OUT/Linuxing-03-developer.jpg" <<'LINES'
-#3ddc84|300|26|b|linuxing@max:~/linuxing-max$ git log --oneline --graph
+#3ddc84|300|26|b|l1sec@max:~/linuxing-max$ git log --oneline --graph
 #f0d9a0|348|24||* 23cdefd (HEAD -> main) photo-driven schemes
 #f0d9a0|392|24||* d3146dd fix: drop unsupported animation leaf
 #f0d9a0|436|24||* 66f8b20 starter theme: whole-system schemes
 #f0d9a0|480|24||* 5f1a9c2 initial commit
-#3ddc84|560|26|b|linuxing@max:~/linuxing-max$ git status
+#3ddc84|560|26|b|l1sec@max:~/linuxing-max$ git status
 #9fb3a6|608|24||On branch main
 #5f7366|652|24||Your branch is up to date with 'origin/main'.
 #7ce8a8|696|24||nothing to commit, working tree clean
-#3ddc84|770|26|b|linuxing@max:~/linuxing-max$ _
+#3ddc84|770|26|b|l1sec@max:~/linuxing-max$ _
 LINES
 
 # ------------------------------------------------------------------ 04 editor
 scene "$OUT/Linuxing-04-editor.jpg" <<'LINES'
-#3ddc84|300|26|b|linuxing@max:~/linuxing-max$ cat tools/linuxing_generate.py
+#3ddc84|300|26|b|l1sec@max:~/linuxing-max$ cat tools/linuxing_generate.py
 #5f7366|348|24||#!/usr/bin/env python3
-#5f7366|392|24||# Linuxing Max - wallpaper-driven schemes
+#5f7366|392|24||# Linuxing Max - crafted by l1sec
 #82c8ff|448|24||def retint(photo):
 #9fb3a6|492|24||    palette = extract(photo)
 #82c8ff|536|24||    for surface in system:
@@ -106,7 +106,7 @@ scene "$OUT/Linuxing-04-editor.jpg" <<'LINES'
 #82c8ff|624|24||    return palette
 #82c8ff|688|24||if __name__ == "__main__":
 #9fb3a6|732|24||    retint(sys.argv[1])
-#3ddc84|800|26|b|linuxing@max:~/linuxing-max$ _
+#3ddc84|800|26|b|l1sec@max:~/linuxing-max$ _
 LINES
 
 # -------------------------------------------------------------------- 05 root
@@ -126,7 +126,7 @@ LINES
 
 # ----------------------------------------------------------------- 06 omarchy
 scene "$OUT/Linuxing-06-omarchy.jpg" <<'LINES'
-#3ddc84|296|26|b|linuxing@max:~$ sudo pacman -Sy omarchy-theme
+#3ddc84|296|26|b|l1sec@max:~$ sudo pacman -Sy omarchy-theme
 #5f7366|344|24||:: Synchronising package databases...
 #5f7366|388|24||resolving dependencies, looking for conflicting packages...
 #9fb3a6|432|24||Packages (2) linuxing-max-6.0-1  linuxing-max-walls-6.0-1
@@ -136,7 +136,7 @@ scene "$OUT/Linuxing-06-omarchy.jpg" <<'LINES'
 #3ddc84|624|24||:: Running post-transaction hooks...
 #7ce8a8|672|24||[ ok ] activating theme linuxing-max
 #7ce8a8|712|24||[ ok ] retinting shell, terminal and gtk apps
-#5f7366|760|24||==> enjoy Linuxing Max - linuxing@max:~$ _
+#5f7366|760|24||==> enjoy Linuxing Max - l1sec@max:~$ _
 LINES
 
 echo "wrote wallpapers to $OUT"
