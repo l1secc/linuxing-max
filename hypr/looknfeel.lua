@@ -95,6 +95,5 @@ hl.animation({ leaf = "fadeOut", enabled = true, speed = 2.7, bezier = "menu_acc
 hl.animation({ leaf = "fadeLayersIn", enabled = true, speed = 3, bezier = "menu_decel" })
 hl.animation({ leaf = "fadeLayersOut", enabled = true, speed = 2.7, bezier = "menu_accel" })
 hl.animation({ leaf = "workspaces", enabled = true, speed = 7, bezier = "menu_decel", style = "slide" })
-hl.animation({ leaf = "special", enabled = true, speed = 4, bezier = "glide", style = "slidefade 70%" })
 hl.animation({ leaf = "layersIn", enabled = true, speed = 2.7, bezier = "emphasizedDecel", style = "popin 93%" })
 hl.animation({ leaf = "layersOut", enabled = true, speed = 2.4, bezier = "menu_accel", style = "popin 94%" })
