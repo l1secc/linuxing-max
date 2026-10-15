@@ -1,15 +1,15 @@
 # Linuxing Max
 
 A **Linux / software / cyber-security** theme for [Omarchy](https://omarchy.org/).
-Every scheme is **wallpaper-driven**: it reads its bundled wallpaper, pulls that
-photo's own colour palette, and retints the *entire* desktop to match — the
-terminal, editor, browser, the bar / menu / launcher / lock / OSD, the Hyprland
-window borders and the native GTK apps. Soft squircle corners, glassmorphism
+One coherent **green** palette for the whole system — terminal, editor, browser,
+bar / menu / launcher / lock / OSD, Hyprland window borders and native GTK apps
+— with a set of hacker / developer / Linux / Omarchy **terminal-scene
+wallpapers** all in the same green look. Soft squircle corners, glassmorphism
 blur, reduced window opacity and a rich animation set round out the "Linuxing
 glides through the terminal" feel.
 
 > Installs through Omarchy's own `omarchy theme install` (a `colors.toml`-driven,
-> code-free theme); a one-time bootstrap then puts the scheme switcher and the
+> code-free theme); a one-time bootstrap then puts the wallpaper switcher and the
 > soft look in place.
 
 ---
@@ -24,33 +24,27 @@ bash <(curl -fsSL https://raw.githubusercontent.com/l1secc/linuxing-max/main/boo
 omarchy theme install https://github.com/l1secc/linuxing-max
 ~/.config/omarchy/themes/linuxing-max/install.sh
 
-# switch the whole system colour scheme (photo + palette together)
-linuxing-scheme             # next scheme
-linuxing-scheme sunset      # jump to a scheme
-linuxing-scheme prev        # previous
-linuxing-scheme list        # show them
+# switch the wallpaper (the palette stays green)
+linuxing-scheme            # next wallpaper
+linuxing-scheme recon      # jump to one by name
+linuxing-scheme prev       # previous
+linuxing-scheme list       # show them
 ```
 
 ---
 
-## The schemes
+## The wallpapers
 
-Switching a scheme swaps the wallpaper **and** repaints the whole system from
-that photo's palette. The terminal canvas stays true black and the ink stays a
-photo-tinted near-white; the accent, the desktop-chrome surfaces, the selection,
-the cursor and the 3-stop window border all follow the photo:
+Every wallpaper is a terminal scene in the same green palette:
 
-| Scheme | Wallpaper | Feels like |
-|--------|-----------|------------|
-| **Kernel Green** (default) | terminal | the Linux console signature |
-| **Sunset Amber** | warm sun over a hill line | golden hour over the mainframe |
-| **Neon Synthwave** | striped sun + neon grid | hot-pink wires |
-| **Deep Ocean** | sonar rings in the abyss | a sweep in the deep |
-| **Crimson Root** | circuit traces + glitch | red-hot root access |
-| **Frostbite** | snowflake lattice | cold storage at the north pole |
-
-The ANSI syntax slots stay fixed and semantic across schemes, so an error never
-changes colour when you switch.
+| Name | Scene |
+|------|-------|
+| **terminal** (default) | `linuxing@max:~$ systemctl start …` |
+| **recon** | an `nmap -sV` port scan |
+| **developer** | a `git log --graph` session |
+| **editor** | a Python source file |
+| **root** | a root shell watching the firewall / auth log |
+| **omarchy** | `pacman -Sy omarchy-theme` install |
 
 ---
 
@@ -74,33 +68,23 @@ code on your machine by itself.
 - **foot terminal translucency** — `alpha=0.82`, text stays crisp.
 - **eza file-kind colours** — folders phosphor green, text stays white.
 - **native GTK overrides** — symlinked at `~/.config/gtk-{3,4}.0/gtk.css` so
-  they follow both `omarchy theme set` and `linuxing-scheme`.
-- **`linuxing-scheme` on your PATH**, plus a `theme-set` hook so
-  `omarchy theme update` / re-applying the theme keeps everything current.
+  they follow `omarchy theme set`.
+- **`linuxing-scheme` on your PATH** (the wallpaper switcher), plus a `theme-set`
+  hook so `omarchy theme update` / re-applying the theme keeps everything current.
 
 Uninstall with `~/.config/omarchy/themes/linuxing-max/install.sh --uninstall`.
 
-### The generator — photo → palette
+### The renderer
 
-`tools/linuxing_generate.py` reads each scheme's wallpaper, extracts its
-dominant colours with ImageMagick, picks a vivid accent plus two harmonising
-accents, derives the whole palette from the accent hue (a neutral accent yields
-neutral grey surfaces, a vivid one yields photo-tinted dark glass), and renders
-every file from `tools/template/*` by swapping `@token@` placeholders. Add a
-wallpaper and a line in `SCHEMES`, then:
+`tools/linuxing_generate.py` renders the single green palette from
+`tools/template/*` into the repo root (swapping `@token@` placeholders): the
+terminal canvas is true black, the ink is a green-tinted near-white, and the
+accent / desktop-chrome surfaces / selection / cursor / 3-stop window border all
+follow the green. Re-run it after editing the templates:
 
 ```bash
-python3 tools/linuxing_generate.py               # every scheme + root (default)
-python3 tools/linuxing_generate.py --only sunset # one scheme
+python3 tools/linuxing_generate.py
 ```
-
-### The switcher
-
-`tools/linuxing-scheme` copies the scheme's bundle
-(`colors` + `shell` + `waybar` + `hyprland` + `gtk` + `chromium`) onto the theme
-root, re-applies the theme with `OMARCHY_THEME_SKIP_BACKGROUND=1` so Omarchy
-regenerates every config and hot-reloads the running shell, then pins the
-scheme's own wallpaper. `--light` hot-reloads without the full app-restart chain.
 
 ---
 
@@ -108,7 +92,7 @@ scheme's own wallpaper. `--light` hot-reloads without the full app-restart chain
 
 ```
 linuxing-max/
-├── colors.toml            # active palette (green by default) — drives everything
+├── colors.toml            # the green palette — drives everything
 ├── shell.toml             # bar / menu / launcher / lock / OSD glass surfaces
 ├── waybar.css             # waybar parity (frosted-glass cards)
 ├── hyprland.conf          # legacy/non-Omarchy Hyprland parity
@@ -118,11 +102,10 @@ linuxing-max/
 ├── eza/theme.yml          # file-kind colours
 ├── foot/linuxing-foot.ini # translucent terminal block
 ├── hypr/looknfeel.lua     # animations + rounding + blur + opacity
-├── backgrounds/           # the wallpapers, one per scheme
-├── palettes/              # one bundle per scheme (colors + shell + waybar + hyprland + gtk + chromium)
+├── backgrounds/           # the green terminal wallpapers
 ├── tools/
-│   ├── linuxing_generate.py      # photo → palette → scheme generator
-│   ├── linuxing-scheme           # scheme + wallpaper switcher (on PATH)
+│   ├── linuxing_generate.py      # green palette renderer
+│   ├── linuxing-scheme           # wallpaper switcher (on PATH)
 │   ├── linuxing-bootstrap        # soft look installer
 │   └── generate-wallpapers.sh    # wallpaper generator
 ├── install.sh             # bootstrap + hook
@@ -146,21 +129,16 @@ linuxing-max/
 **More/less translucent surfaces** — the `*-alpha` keys in
 `tools/template/shell.toml`, then `python3 tools/linuxing_generate.py`.
 
-**A new photo scheme** — drop a wallpaper in `backgrounds/`, add an entry to
-`SCHEMES` in `tools/linuxing_generate.py`, run it. The palette is extracted for
-you.
-
 **Different icons** — edit `icons.theme` (any installed icon theme).
 
 ---
 
 ## Wallpapers
 
-Original, procedurally generated 1920×1080 wallpapers (terminal, sunset,
-synthwave, ocean, crimson, frost) — dark enough to sit behind the glass UI.
-Regenerate with `tools/generate-wallpapers.sh` (needs ImageMagick 7 and the
-JetBrainsMono Nerd Font). Drop your own into
-`~/.config/omarchy/backgrounds/linuxing-max/`.
+Original, procedurally generated 1920×1080 green terminal scenes (terminal,
+recon, developer, editor, root, omarchy). Regenerate with
+`tools/generate-wallpapers.sh` (needs ImageMagick 7 and the JetBrainsMono Nerd
+Font). Drop your own into `~/.config/omarchy/backgrounds/linuxing-max/`.
 
 ---
 

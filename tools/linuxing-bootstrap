@@ -103,8 +103,8 @@ mkdir -p "$BIN_DIR"
 install -m755 "$THEME_DIR/tools/linuxing-scheme" "$BIN_DIR/linuxing-scheme"
 say "✓ $BIN_DIR/linuxing-scheme"
 
-count=$(find "$THEME_DIR/palettes" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
-say "Linuxing Max: $count whole-system colour schemes under one theme."
+count=$(find "$THEME_DIR/backgrounds" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.png' -o -iname '*.webp' \) 2>/dev/null | wc -l)
+say "Linuxing Max: $count green terminal wallpapers under one palette."
 
 # 2. eza file-kind colours: folders phosphor green, text stays white.
 if [[ -f $THEME_DIR/eza/theme.yml ]] && command -v eza >/dev/null 2>&1; then

@@ -68,4 +68,4 @@ case ":$PATH:" in
   *) echo "! note: $BIN_DIR is not on your PATH — add it to call 'linuxing-scheme' directly." >&2 ;;
 esac
 
-echo "Try:  linuxing-scheme  |  linuxing-scheme blue  |  linuxing-scheme list"
+echo "Try:  linuxing-scheme  |  linuxing-scheme recon  |  linuxing-scheme list"
