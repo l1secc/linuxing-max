@@ -1,0 +1,13 @@
+{
+  "num": "02",
+  "slug": "linuxing-max-sunset",
+  "scheme": "sunset",
+  "theme": "Linuxing Max — Sunset Amber",
+  "title": "Sunset Amber",
+  "blurb": "golden hour over the mainframe",
+  "wallpaper": "Linuxing-02-sunset.jpg",
+  "accent": "#ea9e42",
+  "primary": "#c84153",
+  "secondary": "#c247aa",
+  "generator": "tools/linuxing_generate.py"
+}

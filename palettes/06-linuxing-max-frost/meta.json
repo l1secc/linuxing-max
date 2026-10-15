@@ -1,0 +1,13 @@
+{
+  "num": "06",
+  "slug": "linuxing-max-frost",
+  "scheme": "frost",
+  "theme": "Linuxing Max — Frostbite",
+  "title": "Frostbite",
+  "blurb": "cold storage at the north pole",
+  "wallpaper": "Linuxing-06-frost.jpg",
+  "accent": "#7bb7e0",
+  "primary": "#5c7cd6",
+  "secondary": "#5cd4d6",
+  "generator": "tools/linuxing_generate.py"
+}

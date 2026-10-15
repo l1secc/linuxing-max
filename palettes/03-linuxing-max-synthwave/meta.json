@@ -1,0 +1,13 @@
+{
+  "num": "03",
+  "slug": "linuxing-max-synthwave",
+  "scheme": "synthwave",
+  "theme": "Linuxing Max — Neon Synthwave",
+  "title": "Neon Synthwave",
+  "blurb": "hot-pink wires under a striped sun",
+  "wallpaper": "Linuxing-03-synthwave.jpg",
+  "accent": "#dc2d94",
+  "primary": "#8a23e7",
+  "secondary": "#d65cd3",
+  "generator": "tools/linuxing_generate.py"
+}

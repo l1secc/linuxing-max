@@ -1,0 +1,13 @@
+{
+  "num": "05",
+  "slug": "linuxing-max-crimson",
+  "scheme": "crimson",
+  "theme": "Linuxing Max — Crimson Root",
+  "title": "Crimson Root",
+  "blurb": "red-hot root access",
+  "wallpaper": "Linuxing-05-crimson.jpg",
+  "accent": "#ed3541",
+  "primary": "#d67c5c",
+  "secondary": "#d65c94",
+  "generator": "tools/linuxing_generate.py"
+}

@@ -1,21 +1,25 @@
 #!/usr/bin/env python3
-"""Linuxing Max — 4-system colour-scheme generator.
+"""Linuxing Max — wallpaper-driven whole-system colour-scheme generator.
 
-One theme, four whole-system colour schemes (green / blue / white / red).
-Each scheme is a complete Omarchy theme palette: it retints the terminal, the
-bar / menu / launcher / lock / OSD, the Hyprland window borders, the native
-GTK apps and the browser chrome — not just a single accent.
+One theme, several whole-system colour schemes. Each photo-driven scheme reads
+its bundled wallpaper, extracts the wallpaper's own colour palette and derives
+an entire Omarchy theme palette from it: the terminal, the bar / menu / launcher
+/ lock / OSD, the Hyprland window borders, the native GTK apps and the browser
+chrome are all retinted to match the photo.
+
+The first scheme (`green`) keeps the hand-tuned palette the theme shipped with
+and simply pairs it with the terminal wallpaper.
 
 Every scheme is rendered from `tools/template/*` by swapping `@token@`
 placeholders. The terminal canvas is true black and the ink is a near-white
-tinted toward the scheme's hue; the scheme's identity lives in the accent,
-the desktop-chrome surfaces, the selection/cursor and the 3-stop border
-gradient. The ANSI syntax slots (red/yellow/green/…) stay fixed and semantic,
-so an error never changes colour when you switch schemes.
+tinted toward the scheme's hue; the scheme's identity lives in the accent, the
+desktop-chrome surfaces, the selection/cursor and the 3-stop border gradient.
+The ANSI syntax slots (red/yellow/green/…) stay fixed and semantic, so an error
+never changes colour when you switch schemes.
 
 Usage:
-    python3 tools/linuxing_generate.py               # render all four schemes + root (default)
-    python3 tools/linuxing_generate.py --only green  # render one scheme
+    python3 tools/linuxing_generate.py               # render every scheme + root (default)
+    python3 tools/linuxing_generate.py --only sunset # render one scheme
     python3 tools/linuxing_generate.py --dry-run     # print what would change, write nothing
 """
 
@@ -25,16 +29,22 @@ import argparse
 import colorsys
 import json
 import os
-import shutil
+import re
+import subprocess
 import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TPL_DIR = os.path.join(REPO, "tools", "template")
 PALETTES_DIR = os.path.join(REPO, "palettes")
+BG_DIR = os.path.join(REPO, "backgrounds")
 SLUG = "linuxing-max"
 
 # --------------------------------------------------------------------------- #
-#  schemes — the four identities. Order is the on-disk and `next/prev` order.
+#  schemes — the identities. Order is the on-disk and `next/prev` order.
+#
+#  A scheme with an explicit `accent` keeps its hand-tuned palette. A scheme
+#  with only a `wallpaper` has its accent / primary / secondary extracted from
+#  that image at generation time.
 # --------------------------------------------------------------------------- #
 SCHEMES = {
     "green": {
@@ -44,30 +54,37 @@ SCHEMES = {
         "accent": "#3ddc84",
         "primary": "#22d3ee",
         "secondary": "#a3e635",
+        "wallpaper": "Linuxing-01-terminal.jpg",
     },
-    "blue": {
+    "sunset": {
         "order": 2,
-        "title": "Security Blue",
-        "blurb": "the SOC / neon-ops blue",
-        "accent": "#4dabf7",
-        "primary": "#22d3ee",
-        "secondary": "#a78bfa",
+        "title": "Sunset Amber",
+        "blurb": "golden hour over the mainframe",
+        "wallpaper": "Linuxing-02-sunset.jpg",
     },
-    "white": {
+    "synthwave": {
         "order": 3,
-        "title": "Mono White",
-        "blurb": "the clean monochrome lab",
-        "accent": "#e8e8e8",
-        "primary": "#9aa0a6",
-        "secondary": "#c9ccd1",
+        "title": "Neon Synthwave",
+        "blurb": "hot-pink wires under a striped sun",
+        "wallpaper": "Linuxing-03-synthwave.jpg",
     },
-    "red": {
+    "ocean": {
         "order": 4,
-        "title": "Root Red",
-        "blurb": "the exploit / root prompt",
-        "accent": "#ff6b6b",
-        "primary": "#ffa94d",
-        "secondary": "#ff8787",
+        "title": "Deep Ocean",
+        "blurb": "a sonar sweep in the abyss",
+        "wallpaper": "Linuxing-04-ocean.jpg",
+    },
+    "crimson": {
+        "order": 5,
+        "title": "Crimson Root",
+        "blurb": "red-hot root access",
+        "wallpaper": "Linuxing-05-crimson.jpg",
+    },
+    "frost": {
+        "order": 6,
+        "title": "Frostbite",
+        "blurb": "cold storage at the north pole",
+        "wallpaper": "Linuxing-06-frost.jpg",
     },
 }
 
@@ -139,6 +156,11 @@ def hue_of(hx: str) -> float:
     return h
 
 
+def hue_dist(a: float, b: float) -> float:
+    d = abs(a - b) % 1.0
+    return min(d, 1.0 - d)
+
+
 def strip(hx: str) -> str:
     return hx.lstrip("#").lower()
 
@@ -151,20 +173,84 @@ def gradient(*colors: str, angle: str = "45deg") -> str:
     return " ".join(rgba(c, "ee") for c in colors) + " " + angle
 
 
+def rgb_triplet(hx: str) -> str:
+    r, g, b = hex_to_rgb(hx)
+    return "%d,%d,%d" % (round(r * 255), round(g * 255), round(b * 255))
+
+
+# --------------------------------------------------------------------------- #
+#  wallpaper → palette  (ImageMagick dominant colours)
+# --------------------------------------------------------------------------- #
+def _vivid(c: dict, min_s: float) -> str:
+    """A usable, vivid hex from a candidate {h,l,s}."""
+    return hls_to_hex(c["h"], clamp(c["l"], 0.52, 0.68), max(c["s"], min_s))
+
+
+def extract_palette(image_path: str) -> tuple[str, str, str]:
+    out = subprocess.run(
+        ["magick", image_path, "-resize", "140x140", "-colors", "8", "-unique-colors", "txt:-"],
+        capture_output=True, text=True, check=True,
+    ).stdout
+
+    cands = []
+    seen = set()
+    for hx in re.findall(r"#([0-9A-Fa-f]{6})", out):
+        hx = "#" + hx.lower()
+        if hx in seen:
+            continue
+        seen.add(hx)
+        r, g, b = hex_to_rgb(hx)
+        h, l, s = colorsys.rgb_to_hls(r, g, b)
+        cands.append({"hex": hx, "h": h, "l": l, "s": s})
+    if not cands:
+        raise SystemExit(f"could not read any colours from {image_path}")
+
+    def pick(used: list[float], min_dist: float):
+        best, best_score = None, -1.0
+        for c in cands:
+            if any(hue_dist(c["h"], u) < min_dist for u in used):
+                continue
+            score = c["s"] * (1.0 - abs(c["l"] - 0.6))
+            if score > best_score:
+                best_score, best = score, c
+        return best
+
+    picks = []
+    used: list[float] = []
+    for i, min_dist in enumerate((0.0, 0.11, 0.11)):
+        c = pick(used, min_dist)
+        if c is None:
+            # not enough distinct hues in the photo (a single-hue gradient) —
+            # keep it elegant with an analogous shimmer instead of clashing.
+            base_h = picks[0]["h"] if picks else cands[0]["h"]
+            shift = (0.055, -0.065)[min(i - 1, 1)]
+            c = {"hex": "", "h": (base_h + shift) % 1.0, "l": 0.60, "s": 0.60}
+        used.append(c["h"])
+        picks.append(c)
+
+    accent = _vivid(picks[0], 0.62)
+    primary = _vivid(picks[1], 0.55)
+    secondary = _vivid(picks[2], 0.50)
+    return accent, primary, secondary
+
+
 # --------------------------------------------------------------------------- #
 #  token computation — the whole scheme is derived from its accent hue
 # --------------------------------------------------------------------------- #
 def compute_tokens(scheme: dict) -> dict[str, str]:
-    accent = scheme["accent"]
-    primary = scheme["primary"]
-    secondary = scheme["secondary"]
+    accent = scheme.get("accent")
+    primary = scheme.get("primary")
+    secondary = scheme.get("secondary")
+    if not (accent and primary and secondary):
+        wall = os.path.join(BG_DIR, scheme["wallpaper"])
+        accent, primary, secondary = extract_palette(wall)
+
     hue, _l, chroma = colorsys.rgb_to_hls(*hex_to_rgb(accent))
     sec_hue, _l2, sec_chroma = colorsys.rgb_to_hls(*hex_to_rgb(secondary))
 
-    # Tint from the accent's own hue and saturation: a neutral accent (the
-    # "Mono White" scheme) yields neutral grey surfaces, a vivid accent yields
-    # visibly scheme-tinted dark glass. sat_scale is relative to the accent's
-    # own chroma, so every scheme stays coherent.
+    # Tint from the accent's own hue and saturation: a neutral accent yields
+    # neutral grey surfaces, a vivid accent yields visibly scheme-tinted dark
+    # glass. sat_scale is relative to the accent's own chroma.
     def tint(lightness: float, sat_scale: float) -> str:
         return hls_to_hex(hue, lightness, chroma * sat_scale)
 
@@ -172,7 +258,6 @@ def compute_tokens(scheme: dict) -> dict[str, str]:
     tokens.update(CHROME)
 
     tokens.update({
-        # provenance for headers
         "title": scheme["title"],
         "blurb": scheme["blurb"],
 
@@ -213,10 +298,8 @@ def compute_tokens(scheme: dict) -> dict[str, str]:
         "border_inactive": rgba(tint(0.40, 0.19), "aa"),
     })
 
-    # comma RGB triplets for CSS rgba() surfaces (waybar, etc.)
     for name in ("accent", "primary", "secondary", "surface", "dark", "surface_red", "muted", "light_fg"):
-        r, g, b = hex_to_rgb(tokens[name])
-        tokens[name + "_rgb"] = "%d,%d,%d" % (round(r * 255), round(g * 255), round(b * 255))
+        tokens[name + "_rgb"] = rgb_triplet(tokens[name])
     return tokens
 
 
@@ -233,20 +316,14 @@ TEMPLATES = (
 
 
 def render(tokens: dict[str, str], name: str) -> str:
-    path = os.path.join(TPL_DIR, name)
-    with open(path, encoding="utf-8") as fh:
+    with open(os.path.join(TPL_DIR, name), encoding="utf-8") as fh:
         text = fh.read()
     for key, value in tokens.items():
         text = text.replace("@" + key + "@", value)
-    leftover = set(__import__("re").findall(r"@([a-z_]+)@", text))
+    leftover = set(re.findall(r"@([a-z_]+)@", text))
     if leftover:
         raise SystemExit(f"template {name} has unresolved tokens: {sorted(leftover)}")
     return text
-
-
-def chromium_rgb(tokens: dict[str, str]) -> str:
-    r, g, b = (int(tokens["surface"][i : i + 2], 16) for i in (1, 3, 5))
-    return f"{r},{g},{b}"
 
 
 def write_scheme(slug: str, scheme: dict, tokens: dict[str, str], default: bool) -> list[str]:
@@ -266,7 +343,6 @@ def write_scheme(slug: str, scheme: dict, tokens: dict[str, str], default: bool)
                 fh.write(render(tokens, tpl))
             written.append(os.path.relpath(out, REPO))
 
-        # gtk-3.0 / gtk-4.0 mirror the root gtk.css (bootstrap symlinks these in)
         gtk = render(tokens, "gtk.css")
         for sub in ("gtk-3.0", "gtk-4.0"):
             os.makedirs(os.path.join(dest_dir, sub), exist_ok=True)
@@ -275,12 +351,10 @@ def write_scheme(slug: str, scheme: dict, tokens: dict[str, str], default: bool)
                 fh.write(gtk)
             written.append(os.path.relpath(out, REPO))
 
-        if is_root:
-            with open(os.path.join(dest_dir, "chromium.theme"), "w", encoding="utf-8") as fh:
-                fh.write(chromium_rgb(tokens) + "\n")
-            written.append(os.path.relpath(os.path.join(dest_dir, "chromium.theme"), REPO))
+        with open(os.path.join(dest_dir, "chromium.theme"), "w", encoding="utf-8") as fh:
+            fh.write(rgb_triplet(tokens["surface"]) + "\n")
+        written.append(os.path.relpath(os.path.join(dest_dir, "chromium.theme"), REPO))
 
-    # meta.json — provenance for the scheme switcher
     meta = {
         "num": "%02d" % scheme["order"],
         "slug": "%s-%s" % (SLUG, slug),
@@ -288,9 +362,10 @@ def write_scheme(slug: str, scheme: dict, tokens: dict[str, str], default: bool)
         "theme": "Linuxing Max — %s" % scheme["title"],
         "title": scheme["title"],
         "blurb": scheme["blurb"],
-        "accent": scheme["accent"],
-        "primary": scheme["primary"],
-        "secondary": scheme["secondary"],
+        "wallpaper": scheme["wallpaper"],
+        "accent": tokens["accent"],
+        "primary": tokens["primary"],
+        "secondary": tokens["secondary"],
         "generator": "tools/linuxing_generate.py",
     }
     meta_path = os.path.join(bundle_dir, "meta.json")
@@ -308,21 +383,17 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true", help="list changes, write nothing")
     args = ap.parse_args()
 
-    if args.only:
-        slugs = [args.only]
-    else:
-        slugs = sorted(SCHEMES, key=lambda s: SCHEMES[s]["order"])
+    slugs = [args.only] if args.only else sorted(SCHEMES, key=lambda s: SCHEMES[s]["order"])
 
     total: list[str] = []
     for slug in slugs:
         scheme = SCHEMES[slug]
         tokens = compute_tokens(scheme)
         if args.dry_run:
-            print("would render %s (%s)" % (slug, scheme["title"]))
+            print("would render %-10s %s (accent %s)" % (slug, scheme["title"], tokens["accent"]))
             continue
-        written = write_scheme(slug, scheme, tokens, default=(slug == DEFAULT_SCHEME))
-        total.extend(written)
-        print("✓ %s — %s (accent %s)" % (slug, scheme["title"], scheme["accent"]))
+        total.extend(write_scheme(slug, scheme, tokens, default=(slug == DEFAULT_SCHEME)))
+        print("✓ %-10s %-16s accent %s  wallpaper %s" % (slug, scheme["title"], tokens["accent"], scheme["wallpaper"]))
 
     if args.dry_run:
         return 0

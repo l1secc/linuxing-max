@@ -1,0 +1,13 @@
+{
+  "num": "04",
+  "slug": "linuxing-max-ocean",
+  "scheme": "ocean",
+  "theme": "Linuxing Max — Deep Ocean",
+  "title": "Deep Ocean",
+  "blurb": "a sonar sweep in the abyss",
+  "wallpaper": "Linuxing-04-ocean.jpg",
+  "accent": "#38d1c4",
+  "primary": "#5cb8d6",
+  "secondary": "#5cd69c",
+  "generator": "tools/linuxing_generate.py"
+}

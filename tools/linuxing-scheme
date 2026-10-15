@@ -2,17 +2,18 @@
 # ============================================================================
 #  Linuxing Max — colour-scheme switcher
 #
-#  One theme, four whole-system schemes (green / blue / white / red). Every
-#  scheme owns a palette bundle in palettes/<NN>-linuxing-max-<scheme>/.
+#  One theme, several whole-system schemes, each driven by its own wallpaper.
+#  Every scheme owns a palette bundle in palettes/<NN>-linuxing-max-<scheme>/.
 #  Switching a scheme means:
 #
 #    1. copy that bundle's colors.toml / shell.toml / waybar.css /
-#       hyprland.conf / gtk.css (and gtk-3.0 / gtk-4.0) onto the theme root,
+#       hyprland.conf / gtk.css / chromium.theme (and gtk-3.0 / gtk-4.0) onto
+#       the theme root,
 #    2. re-apply the theme with OMARCHY_THEME_SKIP_BACKGROUND=1, so Omarchy
 #       regenerates every terminal/editor/browser config from the new
 #       colors.toml, pushes the new shell.toml at the running shell (bar, menu,
-#       launcher, lock, OSD) and retints running Foot windows via OSC — all
-#       without touching the wallpaper.
+#       launcher, lock, OSD) and retints running Foot windows via OSC, then
+#    3. pin the scheme's own wallpaper.
 #
 #  `--light` skips the heavy app-restart chain and hot-reloads the running
 #  desktop directly (shell IPC + Foot OSC + Hyprland reload), which is enough
@@ -21,9 +22,9 @@
 #  Usage:
 #    linuxing-scheme                # cycle to the next scheme
 #    linuxing-scheme prev           # previous scheme
-#    linuxing-scheme blue           # jump to a scheme by name
+#    linuxing-scheme sunset         # jump to a scheme by name
 #    linuxing-scheme list           # list the available schemes
-#    linuxing-scheme --light red    # hot-reload only
+#    linuxing-scheme --light frost  # hot-reload only
 # ============================================================================
 set -euo pipefail
 
@@ -33,7 +34,7 @@ PALETTES_DIR="$THEME_DIR/palettes"
 CURRENT_DIR="$HOME/.local/state/omarchy/current"
 STAGED_THEME_DIR="$CURRENT_DIR/theme"
 
-BUNDLE_FILES=(colors.toml shell.toml waybar.css hyprland.conf gtk.css)
+BUNDLE_FILES=(colors.toml shell.toml waybar.css hyprland.conf gtk.css chromium.theme)
 GTK_DIRS=(gtk-3.0 gtk-4.0)
 
 QUIET=0
@@ -46,7 +47,7 @@ for arg in "$@"; do
     --light) LIGHT=1 ;;
     --force | -f) FORCE=1 ;;
     -h | --help)
-      sed -n '3,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      sed -n '3,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)
@@ -72,6 +73,7 @@ fi
 bundle_name() { json_field "$1/meta.json" scheme; }
 bundle_title() { json_field "$1/meta.json" title; }
 bundle_accent() { json_field "$1/meta.json" accent; }
+bundle_wall() { json_field "$1/meta.json" wallpaper; }
 
 # --- which scheme is live right now? ----------------------------------------
 current_scheme() {
@@ -90,7 +92,7 @@ if [[ $ARG == list ]]; then
   for i in "${!BUNDLES[@]}"; do
     marker=" "
     (( i == idx )) && marker="*"
-    printf '%s %s — %s\n' "$marker" "$(bundle_name "${BUNDLES[$i]}")" "$(bundle_title "${BUNDLES[$i]}")"
+    printf '%s %-10s %s\n' "$marker" "$(bundle_name "${BUNDLES[$i]}")" "$(bundle_title "${BUNDLES[$i]}")"
   done
   exit 0
 fi
@@ -122,6 +124,7 @@ fi
 BUNDLE="${BUNDLES[$TARGET]}"
 NAME="$(bundle_name "$BUNDLE")"
 TITLE="$(bundle_title "$BUNDLE")"
+WALL="$(bundle_wall "$BUNDLE")"
 
 # --- is the scheme already live? --------------------------------------------
 scheme_is_live() {
@@ -138,7 +141,6 @@ scheme_is_live() {
   return 0
 }
 
-# --- 1. install the scheme's palette at the theme root ------------------------
 copy_bundle() { # copy_bundle <dest-dir>
   local dest="$1" f d
   mkdir -p "$dest"
@@ -153,7 +155,17 @@ copy_bundle() { # copy_bundle <dest-dir>
   done
 }
 
-# --- 2. hot reload path (--light) ---------------------------------------------
+# Pin this scheme's wallpaper. Prefer the staged copy (already there after the
+# theme was applied); fall back to the theme's own backgrounds/.
+pin_wallpaper() {
+  [[ -n $WALL ]] || return 0
+  local path="$STAGED_THEME_DIR/backgrounds/$WALL"
+  [[ -f $path ]] || path="$THEME_DIR/backgrounds/$WALL"
+  [[ -f $path ]] || return 0
+  command -v omarchy-theme-bg-set >/dev/null 2>&1 && omarchy-theme-bg-set "$path" >/dev/null 2>&1 || true
+}
+
+# --- hot reload path (--light) ---------------------------------------------
 light_retint() {
   local live="$STAGED_THEME_DIR" colors_payload shell_payload
   [[ -d $live && -f $live/colors.toml ]] || return 1
@@ -188,20 +200,21 @@ light_retint() {
 if (( FORCE )) || ! scheme_is_live; then
   copy_bundle "$THEME_DIR"
   if (( LIGHT )) && light_retint; then
+    pin_wallpaper
     say "Linuxing Max: $TITLE retinted (light)"
   else
     (( LIGHT )) && say "Linuxing Max: light retint unavailable, applying full theme"
     OMARCHY_THEME_SKIP_BACKGROUND=1 omarchy-theme-set "$THEME"
+    pin_wallpaper
   fi
 else
   say "Linuxing Max: $TITLE already live"
 fi
 
-# --- 3. notify ----------------------------------------------------------------
 if (( ! QUIET )) && command -v omarchy-notification-send >/dev/null 2>&1; then
   omarchy-notification-send "Linuxing Max · $TITLE" \
     "Tüm sistem yeniden boyandı · $((TARGET + 1))/$COUNT" \
-    -t 2500 >/dev/null 2>&1 || true
+    --image "${STAGED_THEME_DIR:-$THEME_DIR}/backgrounds/$WALL" -t 2500 >/dev/null 2>&1 || true
 fi
 
 say "Linuxing Max → $TITLE ($((TARGET + 1))/$COUNT)"
