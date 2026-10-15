@@ -141,3 +141,15 @@ LINES
 
 echo "wrote wallpapers to $OUT"
 ls -1 "$OUT"
+
+# ------------------------------------------------------------------ README docs
+# Small previews the README embeds, so the gallery never goes stale.
+DOCS="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/docs"
+mkdir -p "$DOCS"
+for label in terminal recon developer editor root omarchy; do
+  src="$(printf '%s/Linuxing-%02d-%s.jpg' "$OUT" \
+    "$(( $(printf '%s\n' terminal recon developer editor root omarchy \
+      | grep -n "^$label$" | cut -d: -f1) ))" "$label")"
+  magick "$src" -strip -resize '640>' -quality 80 "$DOCS/thumb-$label.webp"
+done
+echo "wrote README thumbnails to $DOCS"

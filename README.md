@@ -12,6 +12,8 @@ glides through the terminal" feel.
 > code-free theme); a one-time bootstrap then puts the wallpaper switcher and the
 > soft look in place.
 
+![Linuxing Max on an Omarchy desktop](screenshot.webp)
+
 ---
 
 ## Quick start
@@ -45,6 +47,14 @@ Every wallpaper is a terminal scene in the same green palette:
 | **editor** | a Python source file |
 | **root** | a root shell watching the firewall / auth log |
 | **omarchy** | `pacman -Sy omarchy-theme` install |
+
+| terminal | recon | developer |
+|---|---|---|
+| ![terminal](docs/thumb-terminal.webp) | ![recon](docs/thumb-recon.webp) | ![developer](docs/thumb-developer.webp) |
+
+| editor | root | omarchy |
+|---|---|---|
+| ![editor](docs/thumb-editor.webp) | ![root](docs/thumb-root.webp) | ![omarchy](docs/thumb-omarchy.webp) |
 
 ---
 
@@ -111,6 +121,8 @@ linuxing-max/
 │   ├── install.sh                # bootstrap + hook
 │   └── bootstrap.sh              # curl one-liner
 ├── preview.webp / .jpg    # theme-picker thumbnail
+├── screenshot.webp        # real desktop shot (README hero)
+├── docs/                  # wallpaper thumbnails embedded in this README
 └── distribution/          # for the omarchy-site community listing
 ```
 
