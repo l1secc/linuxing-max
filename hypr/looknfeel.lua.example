@@ -7,7 +7,7 @@
 --  Omarchy's defaults, so package updates keep improving the defaults without
 --  touching it.
 --
---  Installed by tools/linuxing-bootstrap (from hypr/looknfeel.lua).
+--  Installed by tools/linuxing-bootstrap (from hypr/looknfeel.lua.example).
 --
 --  Three things worth knowing:
 --    * The Omarchy shell mirrors decoration:rounding into its own

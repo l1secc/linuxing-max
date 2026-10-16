@@ -6,7 +6,7 @@
 #
 #  This is foot's *own* background alpha, not a Hyprland window opacity: the
 #  background goes translucent while the text stays fully opaque and crisp.
-#  Hyprland's blur (see hypr/looknfeel.lua) is what turns that into glass.
+#  Hyprland's blur (see hypr/looknfeel.lua.example) is what turns that into glass.
 #
 #  Tune `alpha` between 1.0 (opaque) and 0.0 (fully transparent); 0.78–0.88 is
 #  the comfortable range on a photo wallpaper. 0.82 is the "reduced opacity"

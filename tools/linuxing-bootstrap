@@ -65,7 +65,7 @@ if (( UNINSTALL )); then
     fi
   fi
   # Soft look: drop our look'n'feel, restore a backed-up one.
-  if [[ -f $HYPR_LOOKNFEEL ]] && cmp -s "$HYPR_LOOKNFEEL" "$THEME_DIR/hypr/looknfeel.lua"; then
+  if [[ -f $HYPR_LOOKNFEEL ]] && cmp -s "$HYPR_LOOKNFEEL" "$THEME_DIR/hypr/looknfeel.lua.example"; then
     rm -f "$HYPR_LOOKNFEEL"
     if [[ -f $HYPR_BACKUP ]]; then
       mv "$HYPR_BACKUP" "$HYPR_LOOKNFEEL"
@@ -122,14 +122,14 @@ fi
 # 3. Soft look: rounded corners, soft shadows and blur for Hyprland — the
 #    Omarchy shell mirrors decoration:rounding into its own corner radius, so
 #    this softens the bar, menu, launcher and notifications too.
-if [[ -f $THEME_DIR/hypr/looknfeel.lua ]]; then
+if [[ -f $THEME_DIR/hypr/looknfeel.lua.example ]]; then
   mkdir -p "$HYPR_DIR"
-  if [[ -f $HYPR_LOOKNFEEL ]] && ! cmp -s "$HYPR_LOOKNFEEL" "$THEME_DIR/hypr/looknfeel.lua" && [[ ! -f $HYPR_BACKUP ]]; then
+  if [[ -f $HYPR_LOOKNFEEL ]] && ! cmp -s "$HYPR_LOOKNFEEL" "$THEME_DIR/hypr/looknfeel.lua.example" && [[ ! -f $HYPR_BACKUP ]]; then
     cp -p "$HYPR_LOOKNFEEL" "$HYPR_BACKUP"
     say "✓ kept your previous look'n'feel as $HYPR_BACKUP"
   fi
-  if ! cmp -s "$HYPR_LOOKNFEEL" "$THEME_DIR/hypr/looknfeel.lua"; then
-    install -m644 "$THEME_DIR/hypr/looknfeel.lua" "$HYPR_LOOKNFEEL"
+  if ! cmp -s "$HYPR_LOOKNFEEL" "$THEME_DIR/hypr/looknfeel.lua.example"; then
+    install -m644 "$THEME_DIR/hypr/looknfeel.lua.example" "$HYPR_LOOKNFEEL"
     hyprctl reload >/dev/null 2>&1 || true
     say "✓ $HYPR_LOOKNFEEL (rounded corners, blur, soft shadows, animations)"
   fi
@@ -137,11 +137,11 @@ fi
 
 # 4. Translucent terminal: foot's own background alpha (text stays crisp),
 #    appended to the user's foot.ini between managed markers.
-if [[ -f $THEME_DIR/foot/linuxing-foot.ini && -f $FOOT_INI ]]; then
+if [[ -f $THEME_DIR/foot/linuxing-foot.ini.example && -f $FOOT_INI ]]; then
   tmp=$(mktemp)
   foot_without_block >"$tmp"
   printf '%s\n' "$FOOT_MARK_BEGIN" >>"$tmp"
-  cat "$THEME_DIR/foot/linuxing-foot.ini" >>"$tmp"
+  cat "$THEME_DIR/foot/linuxing-foot.ini.example" >>"$tmp"
   printf '%s\n' "$FOOT_MARK_END" >>"$tmp"
   if ! cmp -s "$tmp" "$FOOT_INI"; then
     install -m644 "$tmp" "$FOOT_INI"

@@ -110,8 +110,8 @@ linuxing-max/
 ├── icons.theme            # Yaru-prussiangreen (change to taste)
 ├── chromium.theme         # browser chrome tint
 ├── eza/theme.yml          # file-kind colours
-├── foot/linuxing-foot.ini # translucent terminal block
-├── hypr/looknfeel.lua     # animations + rounding + blur + opacity
+├── foot/linuxing-foot.ini.example # translucent terminal block (source for the bootstrap)
+├── hypr/looknfeel.lua.example     # animations + rounding + blur + opacity (source for the bootstrap)
 ├── backgrounds/           # the green terminal wallpapers
 ├── tools/
 │   ├── linuxing_generate.py      # green palette renderer
@@ -130,13 +130,13 @@ linuxing-max/
 
 ## Tuning
 
-**Softer / more rounded** — edit `hypr/looknfeel.lua` and re-run
+**Softer / more rounded** — edit `hypr/looknfeel.lua.example` and re-run
 `tools/linuxing-bootstrap`:
 
 - `decoration.rounding` — `10` subtle, `16` this, `22` bubbly.
 - `o.window(... { opacity = "0.92 0.85" })` — `"0.96 0.92"` barely there,
   `"0.88 0.80"` bold.
-- `foot/linuxing-foot.ini` `alpha` — `0.82` default, `0.78` more transparent.
+- `foot/linuxing-foot.ini.example` `alpha` — `0.82` default, `0.78` more transparent.
 
 **More/less translucent surfaces** — the `*-alpha` keys in
 `tools/template/shell.toml`, then `python3 tools/linuxing_generate.py`.
